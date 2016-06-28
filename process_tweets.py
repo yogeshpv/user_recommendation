@@ -3,6 +3,7 @@ import ast
 import json
 import sys
 import unicodedata
+import re
 
 if len(sys.argv) < 2 :
   print 'Usage: {} <input_file>'.format(sys.argv[0])
@@ -53,5 +54,52 @@ def process_data():
                 error_log.writelines(sys.argv[1] + ': ' + str(counter) + ' Error: ' + str(sys.exc_info()[0]) + ' Tweet: ' + tweet)
                 continue
 
+
+def cleanUpData():
+
+    urls = '(?: %s)' % '|'.join("""http https www""".split())
+    ltrs = r'\w'
+    gunk = r'/#~:.?+=&%@!\-'
+    punc = r'.:?\-'
+    any = "%(ltrs)s%(gunk)s%(punc)s" % { 'ltrs' : ltrs,
+                                         'gunk' : gunk,
+                                         'punc' : punc }
+
+    url = r"""
+        \b                            # start at word boundary
+            %(urls)s    :             # need resource and a colon
+            [%(any)s]  +?             # followed by one or more of any valid character
+        (?=                           # look-ahead non-consumptive assertion
+                [%(punc)s]*           # either 0 or more punctuation
+                (?:   [^%(any)s]      #  followed by a non-url char
+                    |                 #   or end of the string
+                      $
+                )
+        )
+        """ % {'urls' : urls, 'any' : any, 'punc' : punc }
+
+    url_re = re.compile(url, re.VERBOSE | re.MULTILINE)
+
+    with open('processed_output.out') as tweet_file, open('processed_output_NEW.out','a') as tweet_out :
+        for line in tweet_file.readlines():
+            output = json.loads(line.strip())
+            output['text'] = url_re.sub('', output['text'])
+            output['text'] = re.sub('[^a-zA-Z@# ]+','', output['text'])
+            json.dump(output, tweet_out, encoding = 'utf-8')
+            tweet_out.writelines('\n')
+
 if __name__ == "__main__":
-   process_data() 
+   process_data()
+   cleanUpData()
+
+
+# with open('00.json') as f:
+#     for row in f.readlines():
+#         row_info = json.loads(row.strip())
+#         try:
+#             if row_info['lang'] == 'en' and row_info['place'] != None and \
+#                             row_info['place']['bounding_box']['coordinates'][0][0][0] == float('-118.668404'):
+#                 print row_info['place']
+#                 eng_tweets.append(row_info)
+#         except:
+#             continue

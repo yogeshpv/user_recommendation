@@ -81,3 +81,10 @@ with open('topic_out.out', 'a') as out:
         out.writelines('------' + twitter_user + '------\n')
         model = model_dict[twitter_user]['model']
         out.writelines(str(id2word[twitter_user].values()[:15])+ '\n')
+
+from gensim.models import Word2Vec
+def get_word_vector_model(model_path = "glove.6B.50d.txt"):
+    print("Loading model {}. May take several minutes depending on size...".format(model_path))
+    return Word2Vec.load_word2vec_format(model_path)
+
+results = spelling_model.most_similar(positive=pos_vector_search_list + [spellings_mean], negative=neg_vector_search_list)
